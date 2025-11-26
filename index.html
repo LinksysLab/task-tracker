@@ -7,7 +7,7 @@
     <style>
       body {
         font-family: Arial, sans-serif;
-        max-width: 1000px;
+        max-width: 1100px;
         margin: 30px auto;
         padding: 20px;
         border: 1px solid #ddd;
@@ -20,6 +20,7 @@
         color: #2c3e50;
       }
 
+      /* Form layout */
       form {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -38,7 +39,6 @@
 
       input,
       select,
-      textarea,
       button {
         padding: 8px;
         font-size: 14px;
@@ -47,23 +47,32 @@
         width: 100%;
       }
 
-      textarea {
-        grid-column: span 6;
-        min-height: 50px;
-      }
-
       button {
         background-color: #3498db;
         color: white;
         font-weight: bold;
         cursor: pointer;
-        grid-column: span 6;
       }
 
       button:hover {
         background-color: #2980b9;
       }
 
+      /* Filters and Search */
+      .filters {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        justify-content: space-between;
+      }
+
+      .filters select,
+      .filters input {
+        padding: 6px;
+        font-size: 14px;
+      }
+
+      /* Table styling */
       table {
         width: 100%;
         border-collapse: collapse;
@@ -91,11 +100,55 @@
       tr:hover {
         background-color: #eaf3fc;
       }
+
+      .status-completed {
+        background-color: #c8f7c5 !important;
+      }
+
+      .status-delayed {
+        background-color: #f8d7da !important;
+      }
+
+      .status-inprogress {
+        background-color: #fff8cd !important;
+      }
     </style>
   </head>
   <body>
     <h1>Office Task Tracker</h1>
 
+    <!-- Filters -->
+    <div class="filters">
+      <div>
+        <label>Filter by Assigned To:</label>
+        <select id="filterAssigned">
+          <option value="">All</option>
+          <option value="Dennis Ebora">Dennis Ebora</option>
+          <option value="Van Lagaras">Van Lagaras</option>
+          <option value="Van/Dennis">Van/Dennis</option>
+          <option value="Edmar Padayhag">Edmar Padayhag</option>
+        </select>
+      </div>
+      <div>
+        <label>Filter by Status:</label>
+        <select id="filterStatus">
+          <option value="">All</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Completed">Completed</option>
+          <option value="Delayed">Delayed</option>
+        </select>
+      </div>
+      <div>
+        <label>Search Task:</label>
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search by task or remark"
+        />
+      </div>
+    </div>
+
+    <!-- Form -->
     <form id="taskForm">
       <div>
         <label for="assignedTo">Assigned To</label>
@@ -139,81 +192,164 @@
     <table id="taskTable">
       <thead>
         <tr>
-          <th>Task</th>
           <th>Assigned To</th>
+          <th>Task</th>
           <th>Start Date</th>
           <th>Due Date</th>
           <th>Status</th>
           <th>Remarks</th>
+          <th>Completed Date</th>
+          <th>Actions</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td colspan="6" style="text-align: center">Loading tasks...</td>
-        </tr>
-      </tbody>
+      <tbody></tbody>
     </table>
 
     <script>
       const API_URL =
-        "https://script.google.com/macros/s/AKfycbyCWs6tBsS_OXYbVRLBw9qxrrFKbhZK7gqW1NqwUtHd92C4sisgcw_87UWTuZGZ1_ct/exec";
-      // --- Load tasks from Google Sheets ---
+        "https://script.google.com/macros/s/AKfycbyFUrZJhmc3zmq7VoSWHucEoG7sLPoBui4msT17jtautL32jMU8hV_pkkorhU-D4srj/exec";
+
+      let editIndex = null;
+
       async function loadTasks() {
         const res = await fetch(API_URL);
         const tasks = await res.json();
+        renderTasks(tasks);
+      }
 
-        const tableBody = document.getElementById("#taskTable tbody");
+      function formatDate(date) {
+        if (!date) return "-";
+        return new Date(date).toISOString().split("T")[0];
+      }
+
+      function renderTasks(tasks) {
+        const assignedFilter = document.getElementById("filterAssigned").value;
+        const statusFilter = document.getElementById("filterStatus").value;
+        const searchValue = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+
+        const tableBody = document.querySelector("#taskTable tbody");
         tableBody.innerHTML = "";
 
-        if (tasks.length === 0) {
-          tableBody.innerHTML =
-            '<tr><td colspan="6" style="text-align:center;">No tasks found.</td></tr>';
+        const filtered = tasks.filter((t) => {
+          return (
+            (!assignedFilter || t.assignedTo === assignedFilter) &&
+            (!statusFilter || t.status === statusFilter) &&
+            (!searchValue ||
+              (t.task &&
+                t.task.toString().toLowerCase().includes(searchValue)) ||
+              (t.remarks &&
+                t.remarks.toString().toLowerCase().includes(searchValue)))
+          );
+        });
+
+        if (filtered.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No tasks found.</td></tr>`;
           return;
         }
 
-        tasks.forEach((t) => {
+        filtered.forEach((t) => {
           const row = document.createElement("tr");
+          row.classList.add(
+            t.status === "Completed"
+              ? "status-completed"
+              : t.status === "Delayed"
+              ? "status-delayed"
+              : "status-inprogress"
+          );
+
           row.innerHTML = `
-          <td>${t.task}</td>
-          <td>${t.assignedTo}</td>
-          <td>${t.startDate}</td>
-          <td>${t.dueDate || "-"}</td>
-          <td>${t.status}</td>
-          <td>${t.remarks || "-"}</td>
-        `;
+            <td>${t.assignedTo}</td>
+            <td>${t.task}</td>
+            <td>${formatDate(t.startDate)}</td>
+            <td>${formatDate(t.dueDate)}</td>
+            <td>${t.status}</td>
+            <td>${t.remarks || "-"}</td>
+            <td>${formatDate(t.completedDate)}</td>
+            <td>
+              <button onclick="editTask(${t.index})">Edit</button>
+              <button onclick="markCompleted(${t.index})">Mark Done</button>
+              <button onclick="deleteTask(${
+                t.index
+              })" style="background:#e74c3c;">Delete</button>
+            </td>
+          `;
           tableBody.appendChild(row);
         });
       }
 
-      // --- Add a new task ---
       document
         .getElementById("taskForm")
         .addEventListener("submit", async (e) => {
           e.preventDefault();
-          const assignedTo = document.getElementById("assignedTo").value;
-          const task = document.getElementById("task").value;
-          const startDate = document.getElementById("startDate").value;
-          const dueDate = document.getElementById("dueDate").value;
-          const status = document.getElementById("status").value;
-          const remarks = document.getElementById("remarks").value;
+          const data = {
+            index: editIndex,
+            assignedTo: assignedTo.value,
+            task: task.value,
+            startDate: startDate.value,
+            dueDate: dueDate.value,
+            status: status.value,
+            remarks: remarks.value,
+          };
+          if (data.status === "Completed")
+            data.completedDate = new Date().toISOString();
 
-          await fetch(API_URL, {
-            method: "POST",
-            body: JSON.stringify({
-              assignedTo,
-              task,
-              startDate,
-              dueDate,
-              status,
-              remarks,
-            }),
-          });
-
+          await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
           e.target.reset();
+          editIndex = null;
+          e.target.querySelector("button").textContent = "Add Task";
           loadTasks();
         });
 
-      // Initial load
+      async function editTask(index) {
+        const res = await fetch(API_URL);
+        const tasks = await res.json();
+        const t = tasks.find((x) => x.index === index);
+        if (!t) return alert("Task not found");
+
+        assignedTo.value = t.assignedTo;
+        task.value = t.task;
+        startDate.value = formatDate(t.startDate);
+        dueDate.value = formatDate(t.dueDate);
+        status.value = t.status;
+        remarks.value = t.remarks || "";
+
+        editIndex = index;
+        document.querySelector("#taskForm button").textContent = "Save Edit";
+      }
+
+      async function deleteTask(index) {
+        if (!confirm("Delete this task?")) return;
+        await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ deleteIndex: index }),
+        });
+        loadTasks();
+      }
+
+      async function markCompleted(index) {
+        await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({
+            index,
+            status: "Completed",
+            completedDate: new Date().toISOString(),
+          }),
+        });
+        loadTasks();
+      }
+
+      document
+        .getElementById("filterAssigned")
+        .addEventListener("change", loadTasks);
+      document
+        .getElementById("filterStatus")
+        .addEventListener("change", loadTasks);
+      document
+        .getElementById("searchInput")
+        .addEventListener("input", loadTasks);
+
       loadTasks();
     </script>
   </body>
