@@ -152,7 +152,7 @@
     <form id="taskForm">
       <div>
         <label for="assignedTo">Assigned To</label>
-        <select id="assignedTo">
+        <select id="assignedTo" name="assignedTo">
           <option value="Dennis Ebora">Dennis Ebora</option>
           <option value="Van Lagaras">Van Lagaras</option>
           <option value="Van/Dennis">Van/Dennis</option>
@@ -162,29 +162,35 @@
 
       <div>
         <label for="task">Task</label>
-        <input type="text" id="task" placeholder="Task name" required />
+        <input
+          type="text"
+          id="task"
+          name="task"
+          placeholder="Task name"
+          required
+        />
       </div>
 
       <div>
         <label for="startDate">Start Date</label>
-        <input type="date" id="startDate" required />
+        <input type="date" id="startDate" name="startDate" required />
       </div>
 
       <div>
         <label for="dueDate">Due Date</label>
-        <input type="date" id="dueDate" required />
+        <input type="date" id="dueDate" name="dueDate" required />
       </div>
 
       <div>
         <label for="status">Status</label>
-        <select id="status">
+        <select id="status" name="status">
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
           <option value="Delayed">Delayed</option>
         </select>
       </div>
 
-      <input type="text" id="remarks" placeholder="Remarks" />
+      <input type="text" id="remarks" name="remarks" placeholder="Remarks" />
       <button type="submit">Add Task</button>
     </form>
 
@@ -207,7 +213,7 @@
 
     <script>
       const API_URL =
-        "https://script.google.com/macros/s/AKfycbyFUrZJhmc3zmq7VoSWHucEoG7sLPoBui4msT17jtautL32jMU8hV_pkkorhU-D4srj/exec";
+        "https://script.google.com/macros/s/AKfycby-PjbMsCxj0t3ONVmV7yE_Tq9NZG08YgBUbZ7qy6EK4MPipCLRi8v22t5h6LEHo6LH/exec";
 
       let editIndex = null;
 
@@ -217,9 +223,16 @@
         renderTasks(tasks);
       }
 
-      function formatDate(date) {
-        if (!date) return "-";
-        return new Date(date).toISOString().split("T")[0];
+      function formatDate(dateString) {
+        if (!dateString) return "-";
+        const d = new Date(dateString);
+        return (
+          d.getFullYear() +
+          "-" +
+          String(d.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(d.getDate()).padStart(2, "0")
+        );
       }
 
       function renderTasks(tasks) {
@@ -285,12 +298,12 @@
           e.preventDefault();
           const data = {
             index: editIndex,
-            assignedTo: assignedTo.value,
-            task: task.value,
-            startDate: startDate.value,
-            dueDate: dueDate.value,
-            status: status.value,
-            remarks: remarks.value,
+            assignedTo: document.getElementById("assignedTo").value,
+            task: document.getElementById("task").value,
+            startDate: document.getElementById("startDate").value,
+            dueDate: document.getElementById("dueDate").value,
+            status: document.getElementById("status").value, // ✅ fixed
+            remarks: document.getElementById("remarks").value,
           };
           if (data.status === "Completed")
             data.completedDate = new Date().toISOString();
@@ -312,7 +325,7 @@
         task.value = t.task;
         startDate.value = formatDate(t.startDate);
         dueDate.value = formatDate(t.dueDate);
-        status.value = t.status;
+        document.getElementById("status").value = t.status;
         remarks.value = t.remarks || "";
 
         editIndex = index;
