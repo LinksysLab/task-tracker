@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -198,7 +198,7 @@
         const d = new Date(dateString);
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
           2,
-          "0"
+          "0",
         )}-${String(d.getDate()).padStart(2, "0")}`;
       }
 
@@ -215,7 +215,7 @@
             (!statusFilter || t.status === statusFilter) &&
             (!searchValue ||
               t.task?.toLowerCase().includes(searchValue) ||
-              t.remarks?.toLowerCase().includes(searchValue))
+              t.remarks?.toLowerCase().includes(searchValue)),
         );
 
         if (!filtered.length) {
@@ -229,10 +229,10 @@
             t.status === "Completed"
               ? "status-completed"
               : t.status === "Delayed"
-              ? "status-delayed"
-              : t.status === "Cancelled"
-              ? "status-cancelled"
-              : "status-inprogress"
+                ? "status-delayed"
+                : t.status === "Cancelled"
+                  ? "status-cancelled"
+                  : "status-inprogress",
           );
 
           row.innerHTML = `
