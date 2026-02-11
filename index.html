@@ -184,7 +184,7 @@
 
     <script>
       const API_URL =
-        "https://script.google.com/macros/s/AKfycbzsbvesfJxwOMImRtyk_9uQ4CsKcQIY_XUTq2CuVnTG4e1HusyzBQmHTIGKn4beZ76E/exec";
+        "https://script.google.com/macros/s/AKfycbx5o9V83crILxDox9aHc6xqsguLrbvlEmJD_Ak_lGLkVkSr0buvfH5NkkYi0JDGWY3U/exec";
       let editIndex = null;
 
       async function loadTasks() {
@@ -293,11 +293,21 @@
       }
 
       async function markCompleted(index) {
+        const res = await fetch(API_URL);
+        const tasks = await res.json();
+
+        const task = tasks.find((t) => t.index === index);
+
         await fetch(API_URL, {
           method: "POST",
           body: JSON.stringify({
-            index,
+            index: index,
+            assignedTo: task.assignedTo,
+            task: task.task,
+            startDate: task.startDate,
+            dueDate: task.dueDate, // ✅ important
             status: "Completed",
+            remarks: task.remarks,
             completedDate: new Date().toISOString(),
           }),
         });
