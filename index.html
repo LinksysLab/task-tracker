@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Office Task Tracker</title>
+
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -14,13 +15,11 @@
         border-radius: 10px;
         background-color: #fafafa;
       }
-
       h1 {
         text-align: center;
         color: #2c3e50;
       }
 
-      /* Form layout */
       form {
         display: grid;
         grid-template-columns: repeat(6, 1fr);
@@ -30,35 +29,27 @@
       }
 
       label {
-        display: block;
         font-weight: bold;
         font-size: 13px;
         margin-bottom: 4px;
-        color: #34495e;
       }
 
       input,
       select,
       button {
         padding: 8px;
-        font-size: 14px;
-        border: 1px solid #ccc;
         border-radius: 5px;
         width: 100%;
+        border: 1px solid #ccc;
+        font-size: 14px;
       }
 
       button {
         background-color: #3498db;
         color: white;
         font-weight: bold;
-        cursor: pointer;
       }
 
-      button:hover {
-        background-color: #2980b9;
-      }
-
-      /* Filters and Search */
       .filters {
         display: flex;
         gap: 10px;
@@ -66,51 +57,32 @@
         justify-content: space-between;
       }
 
-      .filters select,
-      .filters input {
-        padding: 6px;
-        font-size: 14px;
-      }
-
-      /* Table styling */
       table {
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
-        font-size: 14px;
       }
-
       th,
       td {
         padding: 10px;
         border: 1px solid #ddd;
-        text-align: left;
       }
-
       th {
         background-color: #3498db;
         color: white;
-        text-align: center;
       }
 
-      tr:nth-child(even) {
-        background-color: #f2f2f2;
-      }
-
-      tr:hover {
-        background-color: #eaf3fc;
-      }
-
-      .status-completed {
+      tr.status-completed {
         background-color: #c8f7c5 !important;
       }
-
-      .status-delayed {
+      tr.status-delayed {
         background-color: #f8d7da !important;
       }
-
-      .status-inprogress {
+      tr.status-inprogress {
         background-color: #fff8cd !important;
+      }
+      tr.status-cancelled {
+        background-color: #e0e0e0 !important;
       }
     </style>
   </head>
@@ -129,6 +101,7 @@
           <option value="Edmar Padayhag">Edmar Padayhag</option>
         </select>
       </div>
+
       <div>
         <label>Filter by Status:</label>
         <select id="filterStatus">
@@ -136,8 +109,10 @@
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
           <option value="Delayed">Delayed</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
       </div>
+
       <div>
         <label>Search Task:</label>
         <input
@@ -162,39 +137,35 @@
 
       <div>
         <label for="task">Task</label>
-        <input
-          type="text"
-          id="task"
-          name="task"
-          placeholder="Task name"
-          required
-        />
+        <input type="text" id="task" required />
       </div>
 
       <div>
         <label for="startDate">Start Date</label>
-        <input type="date" id="startDate" name="startDate" required />
+        <input type="date" id="startDate" required />
       </div>
 
       <div>
         <label for="dueDate">Due Date</label>
-        <input type="date" id="dueDate" name="dueDate" required />
+        <input type="date" id="dueDate" required />
       </div>
 
       <div>
         <label for="status">Status</label>
-        <select id="status" name="status">
+        <select id="status">
           <option value="In Progress">In Progress</option>
           <option value="Completed">Completed</option>
           <option value="Delayed">Delayed</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
       </div>
 
-      <input type="text" id="remarks" name="remarks" placeholder="Remarks" />
+      <input type="text" id="remarks" placeholder="Remarks" />
       <button type="submit">Add Task</button>
     </form>
 
     <h2>Task List</h2>
+
     <table id="taskTable">
       <thead>
         <tr>
@@ -214,7 +185,6 @@
     <script>
       const API_URL =
         "https://script.google.com/macros/s/AKfycby-PjbMsCxj0t3ONVmV7yE_Tq9NZG08YgBUbZ7qy6EK4MPipCLRi8v22t5h6LEHo6LH/exec";
-
       let editIndex = null;
 
       async function loadTasks() {
@@ -226,39 +196,30 @@
       function formatDate(dateString) {
         if (!dateString) return "-";
         const d = new Date(dateString);
-        return (
-          d.getFullYear() +
-          "-" +
-          String(d.getMonth() + 1).padStart(2, "0") +
-          "-" +
-          String(d.getDate()).padStart(2, "0")
-        );
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+          2,
+          "0"
+        )}-${String(d.getDate()).padStart(2, "0")}`;
       }
 
       function renderTasks(tasks) {
-        const assignedFilter = document.getElementById("filterAssigned").value;
-        const statusFilter = document.getElementById("filterStatus").value;
-        const searchValue = document
-          .getElementById("searchInput")
-          .value.toLowerCase();
+        const assignedFilter = filterAssigned.value;
+        const statusFilter = filterStatus.value;
+        const searchValue = searchInput.value.toLowerCase();
+        const tbody = document.querySelector("tbody");
+        tbody.innerHTML = "";
 
-        const tableBody = document.querySelector("#taskTable tbody");
-        tableBody.innerHTML = "";
-
-        const filtered = tasks.filter((t) => {
-          return (
+        const filtered = tasks.filter(
+          (t) =>
             (!assignedFilter || t.assignedTo === assignedFilter) &&
             (!statusFilter || t.status === statusFilter) &&
             (!searchValue ||
-              (t.task &&
-                t.task.toString().toLowerCase().includes(searchValue)) ||
-              (t.remarks &&
-                t.remarks.toString().toLowerCase().includes(searchValue)))
-          );
-        });
+              t.task?.toLowerCase().includes(searchValue) ||
+              t.remarks?.toLowerCase().includes(searchValue))
+        );
 
-        if (filtered.length === 0) {
-          tableBody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No tasks found.</td></tr>`;
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No tasks found.</td></tr>`;
           return;
         }
 
@@ -269,76 +230,66 @@
               ? "status-completed"
               : t.status === "Delayed"
               ? "status-delayed"
+              : t.status === "Cancelled"
+              ? "status-cancelled"
               : "status-inprogress"
           );
 
           row.innerHTML = `
-            <td>${t.assignedTo}</td>
-            <td>${t.task}</td>
-            <td>${formatDate(t.startDate)}</td>
-            <td>${formatDate(t.dueDate)}</td>
-            <td>${t.status}</td>
-            <td>${t.remarks || "-"}</td>
-            <td>${formatDate(t.completedDate)}</td>
-            <td>
-              <button onclick="editTask(${t.index})">Edit</button>
-              <button onclick="markCompleted(${t.index})">Mark Done</button>
-              <button onclick="deleteTask(${
-                t.index
-              })" style="background:#e74c3c;">Delete</button>
-            </td>
-          `;
-          tableBody.appendChild(row);
+      <td>${t.assignedTo}</td>
+      <td>${t.task}</td>
+      <td>${formatDate(t.startDate)}</td>
+      <td>${formatDate(t.dueDate)}</td>
+      <td>${t.status}</td>
+      <td>${t.remarks || "-"}</td>
+      <td>${formatDate(t.completedDate)}</td>
+      <td>
+        <button onclick="editTask(${t.index})">Edit</button>
+        <button onclick="markCompleted(${t.index})">Mark Done</button>
+      </td>
+    `;
+          tbody.appendChild(row);
         });
       }
 
-      document
-        .getElementById("taskForm")
-        .addEventListener("submit", async (e) => {
-          e.preventDefault();
-          const data = {
-            index: editIndex,
-            assignedTo: document.getElementById("assignedTo").value,
-            task: document.getElementById("task").value,
-            startDate: document.getElementById("startDate").value,
-            dueDate: document.getElementById("dueDate").value,
-            status: document.getElementById("status").value, // ✅ fixed
-            remarks: document.getElementById("remarks").value,
-          };
-          if (data.status === "Completed")
-            data.completedDate = new Date().toISOString();
+      taskForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const statusValue = status.value;
 
-          await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
-          e.target.reset();
-          editIndex = null;
-          e.target.querySelector("button").textContent = "Add Task";
-          loadTasks();
-        });
+        const data = {
+          index: editIndex,
+          assignedTo: document.getElementById("assignedTo").value,
+          task: document.getElementById("task").value,
+          startDate: document.getElementById("startDate").value,
+          dueDate: document.getElementById("dueDate").value,
+          status: document.getElementById("status").value,
+          remarks: document.getElementById("remarks").value,
+          completedDate:
+            statusValue === "Completed" ? new Date().toISOString() : "",
+        };
+
+        await fetch(API_URL, { method: "POST", body: JSON.stringify(data) });
+
+        taskForm.reset();
+        editIndex = null;
+        taskForm.querySelector("button").textContent = "Add Task";
+        loadTasks();
+      });
 
       async function editTask(index) {
         const res = await fetch(API_URL);
         const tasks = await res.json();
         const t = tasks.find((x) => x.index === index);
-        if (!t) return alert("Task not found");
 
         assignedTo.value = t.assignedTo;
         task.value = t.task;
         startDate.value = formatDate(t.startDate);
         dueDate.value = formatDate(t.dueDate);
-        document.getElementById("status").value = t.status;
+        status.value = t.status;
         remarks.value = t.remarks || "";
 
         editIndex = index;
-        document.querySelector("#taskForm button").textContent = "Save Edit";
-      }
-
-      async function deleteTask(index) {
-        if (!confirm("Delete this task?")) return;
-        await fetch(API_URL, {
-          method: "POST",
-          body: JSON.stringify({ deleteIndex: index }),
-        });
-        loadTasks();
+        taskForm.querySelector("button").textContent = "Save Edit";
       }
 
       async function markCompleted(index) {
@@ -350,18 +301,13 @@
             completedDate: new Date().toISOString(),
           }),
         });
+
         loadTasks();
       }
 
-      document
-        .getElementById("filterAssigned")
-        .addEventListener("change", loadTasks);
-      document
-        .getElementById("filterStatus")
-        .addEventListener("change", loadTasks);
-      document
-        .getElementById("searchInput")
-        .addEventListener("input", loadTasks);
+      filterAssigned.addEventListener("change", loadTasks);
+      filterStatus.addEventListener("change", loadTasks);
+      searchInput.addEventListener("input", loadTasks);
 
       loadTasks();
     </script>
